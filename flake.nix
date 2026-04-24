@@ -9,15 +9,14 @@
     };
   };
 
-  outputs = { nixpkgs, home-manager, ... }:
-    let
-      username = builtins.getEnv "USER";
-      homeDirectory = builtins.getEnv "HOME";
-    in {
-      homeConfigurations."dog-nose" = home-manager.lib.homeManagerConfiguration {
-        pkgs = nixpkgs.legacyPackages.aarch64-darwin;
-        extraSpecialArgs = { inherit username homeDirectory; };
-        modules = [ ./home.nix ];
+  outputs = { nixpkgs, home-manager, ... }: {
+    homeConfigurations."dog-nose" = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.aarch64-darwin;
+      extraSpecialArgs = {
+        username = "yamawaki";
+        homeDirectory = "/Users/yamawaki";
       };
+      modules = [ ./home.nix ];
     };
+  };
 }
