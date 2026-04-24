@@ -5,7 +5,7 @@ Personal dotfiles and system configuration managed with Nix + home-manager.
 ## Apply configuration
 
 ```bash
-home-manager switch --flake .#dog-nose
+home-manager switch --flake .#dog-nose --impure
 ```
 
-> `--impure` is no longer needed since username and homeDirectory are hardcoded in `flake.nix`.
+> `--impure` is required because `flake.nix` reads `$USER` and `$HOME` via `builtins.getEnv`.
