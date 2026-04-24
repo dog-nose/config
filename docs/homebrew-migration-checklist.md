@@ -12,7 +12,7 @@ Migration of Homebrew-installed packages to Nix/home-manager.
 | [ ] | alfred | |
 | [ ] | arc | |
 | [ ] | clickup | |
-| [ ] | cmux | |
+| [ ] | cmux | nixpkgs未収録のため移行不可。Homebrew caskで継続管理 |
 | [ ] | cyberduck | |
 | [ ] | docker | |
 | [ ] | docker-desktop | |
@@ -66,9 +66,9 @@ Migration of Homebrew-installed packages to Nix/home-manager.
 | [ ] | tig | |
 | [x] | lazygit | |
 | [ ] | nkf | |
-| [ ] | wget | |
-| [ ] | curl | |
-| [ ] | telnet | |
+| [x] | wget | |
+| [x] | curl | |
+| [x] | telnet | pkgs.inetutils として追加 |
 | [ ] | httpie | |
 | [ ] | ctop | |
 | [ ] | oxker | |

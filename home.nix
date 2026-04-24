@@ -8,6 +8,9 @@
     pkgs.ghq
     pkgs.jq
     pkgs.ripgrep
+    pkgs.wget
+    pkgs.curl
+    pkgs.inetutils
   ];
 
   programs.home-manager.enable = true;
