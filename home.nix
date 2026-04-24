@@ -5,9 +5,20 @@
 
   home.packages = [
     pkgs.gh
+    pkgs.ghq
+    pkgs.jq
+    pkgs.ripgrep
   ];
 
   programs.home-manager.enable = true;
+
+  programs.fzf = {
+    enable = true;
+  };
+
+  programs.lazygit = {
+    enable = true;
+  };
 
   programs.neovim = {
     enable = true;

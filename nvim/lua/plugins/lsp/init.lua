@@ -135,6 +135,23 @@ return {
 				},
 			})
 
+			-- 全サーバー共通の設定
+			vim.lsp.config("*", {
+				on_attach = on_attach,
+				capabilities = capabilities,
+			})
+
+			-- サーバーごとの追加設定
+			vim.lsp.config("lua_ls", {
+				settings = {
+					Lua = {
+						diagnostics = {
+							globals = { "vim" },
+						},
+					},
+				},
+			})
+
 			require("mason").setup()
 			require("mason-lspconfig").setup({
 				ensure_installed = { "lua_ls" },
@@ -150,35 +167,8 @@ return {
 				end
 			end
 
-			local lspconfig = require("lspconfig")
-			-- サーバーごとの設定
-			local servers = {
-				lua_ls = {
-					settings = {
-						Lua = {
-							diagnostics = {
-								globals = { "vim" },
-							},
-							-- workspace と telemetry を無効にするかは任意（後述）
-							-- workspace = {
-							--   library = vim.api.nvim_get_runtime_file("", true),
-							-- },
-							-- telemetry = {
-							--   enable = false,
-							-- },
-						},
-					},
-				},
-				ts_ls = {},
-				pyright = {},
-			}
-
-			-- 各 LSP サーバーを lspconfig で setup
-			for server_name, config in pairs(servers) do
-				config.on_attach = on_attach
-				config.capabilities = capabilities
-				lspconfig[server_name].setup(config)
-			end
+			-- LSP サーバーを有効化
+			vim.lsp.enable({ "lua_ls", "ts_ls", "pyright" })
 		end,
 	},
 }

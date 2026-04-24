@@ -9,6 +9,9 @@
 ```bash
 ## 後で書く
 git clone ...
+
+
+home-manager switch --flake .#dog-nose --impure
 ```
 
 
