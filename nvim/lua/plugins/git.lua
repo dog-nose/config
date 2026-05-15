@@ -144,11 +144,14 @@ return {
 		end,
 		keys = {
 			{ "<leader>oi", "<cmd>Octo issue list<cr>", desc = "Octo: Issue list" },
-			{ "<leader>oc", "<cmd>Octo issue create<cr>", desc = "Octo: Issue create" },
+			-- { "<leader>oc", "<cmd>Octo issue create<cr>", desc = "Octo: Issue create" },
 			{ "<leader>op", "<cmd>Octo pr list<cr>", desc = "Octo: PR list" },
 			{ "<leader>os", "<cmd>Octo issue search<cr>", desc = "Octo: Issue search" },
 			{ "<leader>or", "<cmd>Octo pr search<cr>", desc = "Octo: PR search" },
 			{ "<leader>oa", "<cmd>Octo actions<cr>", desc = "Octo: Actions" },
+			{ "<leader>ors", "<cmd>Octo review start<cr>", desc = "Octo: Review start" },
+			{ "<leader>orc", "<cmd>Octo review submit<cr>", desc = "Octo: Review submit" },
+			{ "<leader>oca", "<cmd>Octo comment add<cr>", mode = { "n", "v" }, desc = "Octo: Comment add" },
 		},
 	},
 }
