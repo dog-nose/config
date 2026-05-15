@@ -68,4 +68,16 @@
   home.activation.createZshStateDir = lib.hm.dag.entryAfter ["writeBoundary"] ''
     $DRY_RUN_CMD mkdir -p "${homeDirectory}/.local/state/zsh"
   '';
+
+  # ~/.zshrc に source 行がなければ追記
+  home.activation.addZshrcSource = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    zshrc="${homeDirectory}/.zshrc"
+    if ! grep -qF 'source ~/.config/zsh/init.zsh' "$zshrc" 2>/dev/null; then
+      if [ -z "''${DRY_RUN_CMD:-}" ]; then
+        printf '\nsource ~/.config/zsh/init.zsh\n' >> "$zshrc"
+      else
+        echo "Would append 'source ~/.config/zsh/init.zsh' to $zshrc"
+      fi
+    fi
+  '';
 }
