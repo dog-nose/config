@@ -1,7 +1,7 @@
 [include]
     path = ~/.config/git/local.gitconfig
 [ghq]
-    root = ~/Repositories/src/
+    root = ~/Documents/Repositories/src/
 [alias]
     br = branch
     co = checkout

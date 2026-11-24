@@ -5,6 +5,10 @@ plugins=(git zsh-completions zsh-syntax-highlighting)
 source $ZSH/oh-my-zsh.sh
 source $(brew --prefix)/share/zsh-abbr/zsh-abbr.zsh
 
+# brew 管理のツール連携
+command -v direnv >/dev/null && eval "$(direnv hook zsh)"
+command -v fzf >/dev/null && source <(fzf --zsh)
+
 GHQ_ROOT=$(ghq root | sed -e "s:^$HOME:~:")
 
 # Resolve GHQ_ROOT to its absolute path
@@ -105,8 +109,6 @@ function my-source-file-selection() {
     fi
 }
 
-alias Tmux='if tmux has-session -t 0 2>/dev/null; then tmux attach -t 0; else tmux new -s 0; fi'
-
 function remote-list() {
     ssh_host=$(grep -iEh "^Host[[:space:]]" ~/.ssh/config | sed -e 's/Host[[:space:]]\(.*\)/\1/i' | tr ' ' '\n' | grep -v -e '[*?]' -e '^[[:space:]]*$' | fzf --prompt="Host\\> " --query="${*}" --select-1 | xargs -n 1)
     if [ ! -z "$ssh_host" ]; then
@@ -124,6 +126,10 @@ if [[ -n ${EDITOR} ]]; then
     alias nvim=${EDITOR}
 fi
 
-if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-    . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-fi
+# 環境固有の設定 (管理対象外。dotfiles review で config への昇格を検討する)
+[ -f "$HOME/.config/zsh/local.zsh" ] && source "$HOME/.config/zsh/local.zsh"
+
+export PATH="$HOME/.local/bin:$PATH"
+
+# 定期レビューの催促
+command -v dotfiles >/dev/null && dotfiles remind

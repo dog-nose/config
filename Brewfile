@@ -1,0 +1,13 @@
+# 環境固有の追加分は Brewfile.local に書く (管理対象外)
+brew "git"
+brew "ghq"
+brew "gh"
+brew "neovim"
+brew "fzf"
+brew "lazygit"
+brew "direnv"
+brew "jq"
+brew "ripgrep"
+brew "wget"
+brew "curl"
+brew "zsh-abbr"

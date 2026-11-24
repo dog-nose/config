@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+# dotfiles: 設定を読み取り専用の「世代」として作り、シンボリックリンクで切り替える。
+# bash 3.2 (macOS 標準) で動くように書く。
+set -euo pipefail
+
+REPO="$(cd "$(dirname "$(readlink "${BASH_SOURCE[0]}" 2>/dev/null || echo "${BASH_SOURCE[0]}")")/.." && pwd)"
+DATA="${DOTFILES_DATA:-$HOME/.local/share/dotfiles}"
+GENS="$DATA/generations"
+CURRENT="$DATA/current"
+BACKUP="$DATA/backup"
+STATE="$DATA/state"
+KEEP="${DOTFILES_KEEP:-5}"
+REMIND_DAYS="${DOTFILES_REMIND_DAYS:-7}"
+LOCAL_NAMES="zsh/local.zsh nvim/local.lua ghostty/local git/local.gitconfig"  # ~/.config/ 配下
+
+die() { echo "dotfiles: $*" >&2; exit 1; }
+expand() { case "$1" in "~"*) echo "$HOME${1#\~}";; *) echo "$1";; esac; }
+
+# links.conf を "src dest" の行に展開 (ディレクトリはファイル単位に展開)
+each_link() {
+  local src dest f rel
+  while read -r src dest; do
+    case "$src" in ""|\#*) continue;; esac
+    dest="$(expand "$dest")"
+    case "$src" in
+      */) (cd "$REPO/$src" && find . -type f ! -name '.DS_Store' | sed 's|^\./||' | sort) |
+          while read -r rel; do echo "$src$rel ${dest}$rel"; done ;;
+      *) echo "$src $dest" ;;
+    esac
+  done < "$REPO/links.conf"
+}
+
+writable() { chmod -R u+w "$1" 2>/dev/null || true; }
+
+cmd_apply() {
+  mkdir -p "$GENS" "$BACKUP" "$STATE" "$HOME/.local/state/zsh" "$HOME/.local/state/nvim"
+  local ts gen src dest target
+  ts="$(date +%Y%m%d-%H%M%S)"; gen="$GENS/$ts"
+  [ -e "$gen" ] && die "世代が既に存在します: $gen"
+  mkdir -p "$gen"
+  while read -r src dest; do
+    [ -f "$REPO/$src" ] || { writable "$gen"; rm -rf "$gen"; die "repoにファイルがありません: $src"; }
+    mkdir -p "$gen/$(dirname "$src")"
+    cp -p "$REPO/$src" "$gen/$src"
+  done < <(each_link)
+  git -C "$REPO" rev-parse HEAD > "$gen/.revision" 2>/dev/null || true
+  chmod -R a-w "$gen"
+
+  # リンクを張る (current 経由)。切り替えは current の差し替えのみ。
+  while read -r src dest; do
+    target="$CURRENT/$src"
+    mkdir -p "$(dirname "$dest")"
+    if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$target" ]; then continue; fi
+    if [ -e "$dest" ] && [ ! -L "$dest" ]; then
+      mkdir -p "$BACKUP/$ts/$(dirname "${dest#$HOME/}")"
+      mv "$dest" "$BACKUP/$ts/${dest#$HOME/}"
+      echo "退避: $dest -> $BACKUP/$ts/${dest#$HOME/}"
+    fi
+    ln -sfn "$target" "$dest"
+  done < <(each_link)
+
+  switch_current "$gen"
+  ensure_zshrc_source
+  ensure_local_templates
+  echo "適用しました: $ts"
+  cmd_gc
+}
+
+switch_current() {  # current をアトミックに差し替える
+  local tmp="$DATA/.current.$$"
+  ln -sfn "$1" "$tmp"
+  mv -fh "$tmp" "$CURRENT" 2>/dev/null || mv -f -T "$tmp" "$CURRENT"
+}
+
+ensure_zshrc_source() {
+  local zshrc="$HOME/.zshrc"
+  grep -qF 'source ~/.config/zsh/init.zsh' "$zshrc" 2>/dev/null ||
+    printf '\nsource ~/.config/zsh/init.zsh\n' >> "$zshrc"
+}
+
+ensure_local_templates() {
+  local n f
+  for n in $LOCAL_NAMES; do
+    f="$HOME/.config/$n"
+    [ -e "$f" ] && continue
+    mkdir -p "$(dirname "$f")"
+    case "$n" in
+      *.lua) echo "-- 環境固有の nvim 設定。管理対象外。" > "$f" ;;
+      *) echo "# 環境固有の設定。管理対象外。" > "$f" ;;
+    esac
+  done
+}
+
+list_gens() { ls -1 "$GENS" 2>/dev/null | grep -E '^[0-9]{8}-[0-9]{6}$' | sort; }
+
+cmd_gc() {
+  local dry=0 keep="$KEEP"
+  while [ $# -gt 0 ]; do
+    case "$1" in -n) dry=1;; --keep) shift; keep="${1:?--keep N}";; *) die "不明な引数: $1";; esac
+    shift
+  done
+  case "$keep" in ''|*[!0-9]*) die "--keep は数値で指定してください";; esac
+  [ "$keep" -ge 2 ] || keep=2
+  local cur prev total n=0 g
+  cur="$(basename "$(readlink "$CURRENT" 2>/dev/null || true)")"
+  total="$(list_gens | wc -l | tr -d ' ')"
+  prev="$(list_gens | grep -B1 -x "$cur" | head -1 || true)"
+  [ "$prev" = "$cur" ] && prev=""
+  for g in $(list_gens); do
+    n=$((n + 1))
+    [ $((total - n)) -lt "$keep" ] && continue   # 新しい keep 世代は残す
+    [ "$g" = "$cur" ] || [ "$g" = "$prev" ] && continue
+    if [ "$dry" = 1 ]; then echo "削除予定: $g"; continue; fi
+    writable "$GENS/$g"; rm -rf "${GENS:?}/$g"; echo "削除: $g"
+  done
+}
+
+cmd_rollback() {
+  local cur prev
+  cur="$(basename "$(readlink "$CURRENT" 2>/dev/null)")" || die "current がありません"
+  prev="$(list_gens | grep -B1 -x "$cur" | head -1)"
+  { [ -n "$prev" ] && [ "$prev" != "$cur" ]; } || die "戻れる世代がありません"
+  switch_current "$GENS/$prev"; echo "ロールバック: $cur -> $prev"
+}
+
+cmd_update() {
+  git -C "$REPO" pull --ff-only
+  cmd_apply
+}
+
+cmd_status() {
+  local cur; cur="$(basename "$(readlink "$CURRENT" 2>/dev/null || echo '(なし)')")"
+  echo "repo:    $REPO"
+  echo "current: $cur"
+  echo "世代:    $(list_gens | wc -l | tr -d ' ')"
+  local src dest ok=0 ng=0
+  while read -r src dest; do
+    if [ "$(readlink "$dest" 2>/dev/null)" = "$CURRENT/$src" ]; then ok=$((ok+1)); else ng=$((ng+1)); echo "未リンク: $dest"; fi
+  done < <(each_link)
+  echo "リンク:  ok=$ok ng=$ng"
+  if [ -d "$GENS/$cur" ] && ! diff -rq -x .revision "$GENS/$cur" "$REPO" 2>/dev/null | grep -E "Only in $GENS|differ" >/dev/null; then :; fi
+  local f; for f in $LOCAL_NAMES; do
+    [ -s "$HOME/.config/$f" ] && echo "local:   ~/.config/$f ($(grep -vcE '^\s*(#|--|$)' "$HOME/.config/$f") 行)"
+  done; true
+}
+
+hash_of() { shasum -a 256 "$1" | cut -d' ' -f1; }
+repo_counterpart() {  # local ファイルに対応する repo 内の設定
+  case "$1" in
+    zsh/local.zsh) echo zsh/init.zsh;; nvim/local.lua) echo nvim/init.lua;;
+    ghostty/local) echo ghostty/config;; git/local.gitconfig) echo git/.gitconfig;;
+  esac
+}
+
+cmd_review() {
+  mkdir -p "$STATE"
+  local n f h last ans ed="${EDITOR:-nvim}"
+  for n in $LOCAL_NAMES; do
+    f="$HOME/.config/$n"
+    [ -f "$f" ] || continue
+    grep -qvE '^\s*(#|--|$)' "$f" || continue          # 中身が空ならスキップ
+    h="$(hash_of "$f")"; last="$(cat "$STATE/reviewed.$(echo "$n" | tr / _)" 2>/dev/null || true)"
+    [ "$h" = "$last" ] && continue
+    echo "=============== $f"; cat "$f"; echo "==============="
+    printf '[p]config へ昇格 / [k]local に残す / [s]スキップ ? ' > /dev/tty
+    read -r ans < /dev/tty
+    case "$ans" in
+      p) "$ed" -O "$REPO/$(repo_counterpart "$n")" "$f" < /dev/tty
+         echo "repo を編集したら commit して、dotfiles apply を実行してください。"
+         echo "(local 側から移した行は削除してください)";;
+      k) echo "$h" > "$STATE/reviewed.$(echo "$n" | tr / _)";;
+      *) ;;
+    esac
+  done
+  date +%s > "$STATE/last_review"
+}
+
+cmd_remind() {  # zsh 起動時に呼ぶ。1日1回まで、前回レビューから N 日以上で通知
+  local now last_rem last_rev
+  now="$(date +%s)"
+  last_rev="$(cat "$STATE/last_review" 2>/dev/null || echo 0)"
+  last_rem="$(cat "$STATE/last_remind" 2>/dev/null || echo 0)"
+  [ $((now - last_rev)) -ge $((REMIND_DAYS * 86400)) ] || return 0
+  [ $((now - last_rem)) -ge 86400 ] || return 0
+  mkdir -p "$STATE"; echo "$now" > "$STATE/last_remind"
+  local n f
+  for n in $LOCAL_NAMES; do
+    f="$HOME/.config/$n"
+    [ -f "$f" ] && grep -qvE '^\s*(#|--|$)' "$f" && {
+      echo "dotfiles: local.* に未レビューの設定があります。'dotfiles review' で config への昇格を検討してください。"; return 0; }
+  done
+  return 0
+}
+
+case "${1:-}" in
+  apply) shift; cmd_apply "$@";;
+  update) shift; cmd_update "$@";;
+  status) cmd_status;;
+  rollback) cmd_rollback;;
+  review) cmd_review;;
+  gc) shift; cmd_gc "$@";;
+  remind) cmd_remind;;
+  *) echo "usage: dotfiles {apply|update|status|rollback|review|gc [-n] [--keep N]}"; exit 1;;
+esac

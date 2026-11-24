@@ -170,3 +170,9 @@ if vim.fn.executable("rg") == 1 then
 end
 
 vim.keymap.set("t", "zj", [[<C-\><C-n>]])
+
+-- 環境固有の設定 (管理対象外)
+local local_conf = vim.fn.stdpath("config") .. "/local.lua"
+if vim.uv.fs_stat(local_conf) then
+	dofile(local_conf)
+end

@@ -18,6 +18,8 @@ require("lazy").setup({
 	spec = {
 		{ import = "plugins" },
 	},
+	-- lazy-lock.json は読み取り専用の設定ディレクトリではなく state に置く
+	lockfile = vim.fn.stdpath("state") .. "/lazy-lock.json",
 	defaults = {},
 	install = {},
 	checker = {},

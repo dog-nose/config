@@ -1,2 +1,5 @@
 background-opacity = 0.7
 background-blur = macos-glass-regular
+
+# 環境固有の設定 (管理対象外)
+config-file = ?local
