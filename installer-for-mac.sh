@@ -39,8 +39,9 @@ if [ ! -f "$SSH_KEY" ]; then
   ssh-keygen -t ed25519 -C "${comment:-$(whoami)@$(hostname -s)}" -f "$SSH_KEY"
 fi
 
-ssh_ok() {  # GitHub は認証成功でも終了コード 1 を返すので出力で判定する
-  ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 | grep -q "successfully authenticated"
+ssh_ok() {  # GitHub は認証成功でも終了コード 1 を返す (pipefail で落ちないよう出力を変数に取る)
+  SSH_OUT="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -T git@github.com 2>&1 || true)"
+  case "$SSH_OUT" in *"successfully authenticated"*) return 0;; *) return 1;; esac
 }
 if ! ssh_ok; then
   log "公開鍵を GitHub に登録してください (クリップボードにコピー済み)"
@@ -48,6 +49,7 @@ if ! ssh_ok; then
   pbcopy < "$SSH_KEY.pub"
   open "https://github.com/settings/ssh/new" || true
   until ssh_ok; do
+    echo "ssh の結果: $SSH_OUT"
     ask -p "登録したら Enter (再確認します): " _
   done
 fi
