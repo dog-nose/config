@@ -91,6 +91,10 @@ main() {
   if [ "${actual_root%/}" = "$GHQ_ROOT" ]; then info "ghq root: $actual_root"; else log "警告: ghq root ($actual_root) が想定 ($GHQ_ROOT) と異なります"; fi
 
   step 6 "brew bundle でパッケージを導入"
+  # 公式以外の tap の formula は信頼設定が必要 (tap 全体ではなく、使う formula だけを信頼する)
+  info "サードパーティ formula を信頼: olets/tap/zsh-abbr"
+  brew tap olets/tap
+  brew trust --formula olets/tap/zsh-abbr
   brew bundle --file="$REPO_DIR/Brewfile"
   LOCAL_BREWFILE="$HOME/.config/dotfiles/Brewfile.local"
   if [ -f "$LOCAL_BREWFILE" ]; then
