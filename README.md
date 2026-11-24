@@ -47,3 +47,36 @@ curl -fsSL https://raw.githubusercontent.com/dog-nose/config/main/installer-for-
 ## 既存マシン (Nix からの移行)
 
 `home-manager` が作った `/nix/store` へのリンクは `dotfiles apply` で張り替わる。tmux / fish は管理対象外になった (履歴は `legacy-nix` ブランチ)。Nix のアンインストールは任意。
+
+## Claude Desktop の mod (任意・手動)
+
+このリポジトリは Claude のマーケットプレイスも兼ねている。インストーラには組み込んでいないので、必要なときに手動で実行する。
+
+| mod | 内容 |
+|---|---|
+| `night-sky-bg` | デスクトップの背景に、瞬く星・月・山のシルエットを表示 (ダークモード固定) |
+| `usage-meter` | 入力欄の上に、5 時間枠・週間枠の使用率を表示 (デスクトップ画面のみ) |
+
+**シェルから**
+
+```bash
+claude plugin marketplace add dog-nose/config
+claude plugin install usage-meter@dog-nose-mods
+claude plugin install night-sky-bg@dog-nose-mods
+```
+
+**ターミナルの Claude Code から**
+
+```
+/plugin marketplace add dog-nose/config
+/plugin install usage-meter@dog-nose-mods
+/plugin install night-sky-bg@dog-nose-mods
+```
+
+**デスクトップアプリから**: プロンプト横の「+」→ Plugins → Add marketplace に `dog-nose/config` を入力し、Add plugin で mod を選ぶ。
+
+- 導入した mod は、以降に開く新しいセッションから読み込まれる。
+- 手元で試すだけなら `claude --plugin-dir claude-mods/usage-meter` が使える。
+- `usage-meter` の数値は、サブスクリプション利用時の最初の応答後に表示される。
+- mod の更新は、`claude-mods/` を編集して push し、`claude plugin marketplace update dog-nose-mods` で取り込む。
+- `marketplace add` には GitHub のリポジトリ名 (`dog-nose/config`)、`install` には `プラグイン名@dog-nose-mods` を指定する。マーケットプレイス名は `dog-nose-mods`、定義は [.claude-plugin/marketplace.json](.claude-plugin/marketplace.json)。

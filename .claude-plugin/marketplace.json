@@ -1,0 +1,9 @@
+{
+  "name": "dog-nose-mods",
+  "description": "Claude Desktop 用の個人 mod (night-sky-bg / usage-meter)",
+  "owner": { "name": "dog-nose" },
+  "plugins": [
+    { "name": "night-sky-bg", "source": "./claude-mods/night-sky-bg" },
+    { "name": "usage-meter", "source": "./claude-mods/usage-meter" }
+  ]
+}
