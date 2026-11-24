@@ -7,7 +7,7 @@ OWNER_REPO="dog-nose/config"
 GHQ_ROOT="$HOME/Documents/Repositories/src"   # git/.gitconfig の ghq.root と一致させること
 REPO_DIR="$GHQ_ROOT/github.com/$OWNER_REPO"
 SSH_KEY="$HOME/.ssh/id_ed25519"
-TOTAL=8
+TOTAL=9
 STEP_NAME="開始前"
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
@@ -124,6 +124,11 @@ main() {
   ln -sfn "$REPO_DIR/bin/dotfiles" "$HOME/.local/bin/dotfiles"
   info "リンク: ~/.local/bin/dotfiles"
   "$REPO_DIR/bin/dotfiles" apply
+
+  step 9 "nvim のプラグインと LSP ツールを導入 (初回起動時の待ちをなくす)"
+  # 失敗しても致命的ではないので警告にとどめる (nvim を起動すれば lazy.nvim / mason が続きを行う)
+  if nvim --headless "+Lazy! sync" +qa; then info "プラグイン: OK"; else log "警告: プラグインの導入に失敗しました"; fi
+  if nvim --headless "+luafile $REPO_DIR/bin/nvim-mason.lua" +qa; then info "mason ツール: 完了"; else log "警告: mason ツールの導入に失敗しました"; fi
 
   printf '\n'
   log "完了しました。新しいシェルを開いてください。(PATH に ~/.local/bin が必要です)"
