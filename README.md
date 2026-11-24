@@ -54,7 +54,7 @@ curl -fsSL https://raw.githubusercontent.com/dog-nose/config/main/installer-for-
 
 | mod | 内容 |
 |---|---|
-| `night-sky-bg` | デスクトップの背景に、瞬く星・月・山のシルエットを表示 (ダークモード固定) |
+| `night-sky-bg` | デスクトップの背景に、富士山と桜のイラストを表示 (ダークモード固定。名前は旧星空の名残) |
 | `usage-meter` | 入力欄の上に、5 時間枠・週間枠の使用率を表示 (デスクトップ画面のみ) |
 
 **シェルから**
